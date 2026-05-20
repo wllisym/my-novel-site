@@ -73,7 +73,15 @@ else:
                         supabase.table("chapters").delete().eq("id", chapter["id"]).execute()
                         fetch_data.clear()
                         st.rerun()
-
+# ============== 👇 新加的代码：社交链接 ==============
+        st.markdown("---")
+        st.subheader("🔗 关注我")
+        # 把下面括号里的 # 换成你真实的个人主页链接！
+        st.markdown("🍓 [小红书](https://xhslink.com/m/6Zh7aaViNPL)")
+        st.markdown("💼 [抖音](https://v.douyin.com/b5-iprgkuJE/)")
+        st.markdown("🏫 [简历](#)")
+        st.markdown("🏫 [追星号，进来看幂姐](#)")
+        # ============== 👆 新加的代码结束 ==============
     # ================= 列 2：胡思乱想 & 我是大师 =================
     with col2:
         st.header("💭 胡思乱想")
@@ -141,3 +149,5 @@ else:
             if os.path.exists("qr.png"): st.image("qr.png", caption="扫码充值，感谢老板！")
             elif os.path.exists("qr.jpg"): st.image("qr.jpg", caption="扫码充值，感谢老板！")
             else: st.error("请在文件夹中放入名为 qr.png 的收款码图片！")
+st.markdown("---")
+       
