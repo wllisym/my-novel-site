@@ -2,9 +2,50 @@ import streamlit as st
 from supabase import create_client, Client
 import os
 import time
+import base64  # <--- 图片转码神器
 
 # --- 1. 页面配置 ---
 st.set_page_config(page_title="锦汐的个人主页", page_icon="✨", layout="wide")
+
+# --- 图片转 Base64 代码的神器函数 (必须放在最外层) ---
+def get_img_base64(local_img_path):
+    with open(local_img_path, "rb") as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
+# --- 全局 UI 美化 (CSS 注入) ---
+st.markdown("""
+<style>
+/* 美化所有的容器边框 */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    border-radius: 16px !important; 
+    border: 1px solid #f0f2f6 !important; 
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important; 
+    transition: all 0.3s ease; 
+}
+/* 让容器在鼠标放上去时有“呼吸悬浮感” */
+div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+    transform: translateY(-3px); 
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1) !important; 
+}
+/* 自定义图标标题的排版规则 */
+.my-custom-header {
+    display: flex; 
+    align-items: center; 
+    font-size: 26px; 
+    font-weight: 800; 
+    color: #1f2937; 
+    margin-bottom: 20px; 
+    margin-top: 10px;
+}
+.my-custom-header img {
+    width: 36px; 
+    height: 36px; 
+    margin-right: 12px; 
+    border-radius: 8px; 
+}
+</style>
+""", unsafe_allow_html=True)
 
 # --- 2. 连接云端数据库 ---
 @st.cache_resource
@@ -52,7 +93,15 @@ else:
 
     # ================= 列 1：小说连载 =================
     with col1:
-        st.header("📖 小说后台")
+        # 自定义图标: 小说后台
+        img_code_novel = get_img_base64("novel.png")
+        st.markdown(f"""
+        <div class="my-custom-header">
+            <img src="data:image/png;base64,{img_code_novel}"> 
+            小说后台
+        </div>
+        """, unsafe_allow_html=True)
+        
         if is_admin:
             with st.expander("➕ 发布新章节"):
                 new_title = st.text_input("章节标题")
@@ -73,18 +122,26 @@ else:
                         supabase.table("chapters").delete().eq("id", chapter["id"]).execute()
                         fetch_data.clear()
                         st.rerun()
-# ============== 👇 新加的代码：社交链接 ==============
+                        
+        # 社交链接
         st.markdown("---")
         st.subheader("🔗 关注我")
-        # 把下面括号里的 # 换成你真实的个人主页链接！
         st.markdown("🍓 [小红书](https://xhslink.com/m/6Zh7aaViNPL)")
         st.markdown("💼 [抖音](https://v.douyin.com/b5-iprgkuJE/)")
         st.markdown("🏫 [简历](#)")
         st.markdown("🏫 [追星号，进来看幂姐](#)")
-        # ============== 👆 新加的代码结束 ==============
+
     # ================= 列 2：胡思乱想 & 我是大师 =================
     with col2:
-        st.header("💭 胡思乱想")
+        # 自定义图标: 胡思乱想
+        img_code_thought = get_img_base64("think.png")
+        st.markdown(f"""
+        <div class="my-custom-header">
+            <img src="data:image/png;base64,{img_code_thought}"> 
+            胡思乱想
+        </div>
+        """, unsafe_allow_html=True)
+        
         if is_admin:
             with st.form("thought_form", clear_on_submit=True):
                 new_thought = st.text_area("碎碎念...", height=60)
@@ -102,29 +159,32 @@ else:
                     st.rerun()
 
         st.markdown("---")
-        st.header("📷 我是大师")
         
-        # --- 图片上传逻辑 ---
+        # 自定义图标: 我是大师
+        img_code_photo = get_img_base64("photo.png")
+        st.markdown(f"""
+        <div class="my-custom-header">
+            <img src="data:image/png;base64,{img_code_photo}"> 
+            我是大师
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # 图片上传逻辑
         if is_admin:
             uploaded_file = st.file_uploader("上传摄影作品", type=["jpg", "png", "jpeg"])
             if uploaded_file is not None:
                 if st.button("确认上传照片"):
                     with st.spinner("正在上传至云端..."):
-                        # 1. 上传到 Storage
                         file_name = f"{int(time.time())}_{uploaded_file.name}"
                         file_data = uploaded_file.getvalue()
                         supabase.storage.from_("photos").upload(file_name, file_data)
-                        
-                        # 2. 获取公开链接
                         img_url = supabase.storage.from_("photos").get_public_url(file_name)
-                        
-                        # 3. 存入数据库表
                         supabase.table("photos").insert({"url": img_url}).execute()
                         fetch_data.clear()
                         st.success("照片已入库！")
                         st.rerun()
         
-        # --- 展示照片墙 ---
+        # 展示照片墙
         if not photo_records:
             st.caption("大师还没上传照片哦~")
         else:
@@ -132,7 +192,6 @@ else:
                 st.image(photo['url'], use_container_width=True)
                 if is_admin:
                     if st.button("删除这张照片", key=f"del_p_{photo['id']}"):
-                        # 从数据库删除记录
                         supabase.table("photos").delete().eq("id", photo["id"]).execute()
                         fetch_data.clear()
                         st.rerun()
@@ -149,5 +208,3 @@ else:
             if os.path.exists("qr.png"): st.image("qr.png", caption="扫码充值，感谢老板！")
             elif os.path.exists("qr.jpg"): st.image("qr.jpg", caption="扫码充值，感谢老板！")
             else: st.error("请在文件夹中放入名为 qr.png 的收款码图片！")
-st.markdown("---")
-       
